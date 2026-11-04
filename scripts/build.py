@@ -30,31 +30,85 @@ ASSETS = {
 
 # ---------- datakilder ----------
 
-def fetch_yahoo(symbol):
-    last_err = None
-    for host in ("query2", "query1"):
-        url = f"https://{host}.finance.yahoo.com/v8/finance/chart/{requests.utils.quote(symbol)}"
+def _clean(pairs):
+    by_date = {}
+    for d, c in pairs:
+        if c is not None and math.isfinite(c) and c > 0:
+            by_date[d] = float(c)
+    dates = sorted(by_date)
+    if len(dates) < 300:
+        raise RuntimeError(f"for få datapunkter ({len(dates)})")
+    return dates, [by_date[d] for d in dates]
+
+
+def src_yfinance(symbol):
+    import yfinance as yf
+    df = yf.Ticker(symbol).history(period="10y", interval="1d", auto_adjust=False)
+    return _clean((i.strftime("%Y-%m-%d"), float(c)) for i, c in zip(df.index, df["Close"]))
+
+
+def src_yahoo(symbol):
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{requests.utils.quote(symbol)}"
+    r = requests.get(url, params={"range": "10y", "interval": "1d"}, headers={"User-Agent": UA}, timeout=30)
+    r.raise_for_status()
+    res = r.json()["chart"]["result"][0]
+    off = res["meta"].get("gmtoffset", 0)
+    closes = res["indicators"]["quote"][0]["close"]
+    return _clean((datetime.fromtimestamp(ts + off, tz=timezone.utc).strftime("%Y-%m-%d"), c)
+                  for ts, c in zip(res["timestamp"], closes))
+
+
+def src_cryptocompare(_):
+    pairs, to_ts = [], None
+    for _ in range(2):  # 2 x 2000 dage
+        params = {"fsym": "BTC", "tsym": "USD", "limit": 2000}
+        if to_ts:
+            params["toTs"] = to_ts
+        r = requests.get("https://min-api.cryptocompare.com/data/v2/histoday", params=params,
+                         headers={"User-Agent": UA}, timeout=30)
+        r.raise_for_status()
+        rows = r.json()["Data"]["Data"]
+        pairs += [(datetime.fromtimestamp(x["time"], tz=timezone.utc).strftime("%Y-%m-%d"), x["close"]) for x in rows]
+        to_ts = rows[0]["time"] - 86400
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=3653)).strftime("%Y-%m-%d")
+    return _clean(p for p in pairs if p[0] >= cutoff)
+
+
+def src_fred(series):
+    def go(_):
+        start = (datetime.now(timezone.utc) - timedelta(days=3653)).strftime("%Y-%m-%d")
+        r = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv", params={"id": series, "cosd": start},
+                         headers={"User-Agent": UA}, timeout=60)
+        r.raise_for_status()
+        pairs = []
+        for row in r.text.strip().splitlines()[1:]:
+            d, v = row.split(",")[:2]
+            try:
+                pairs.append((d, float(v)))
+            except ValueError:
+                pass
+        return _clean(pairs)
+    return go
+
+
+SOURCES = {
+    "btc": [("Yahoo Finance", src_yfinance), ("CryptoCompare", src_cryptocompare), ("Yahoo Finance", src_yahoo), ("FRED (Coinbase)", src_fred("CBBTCUSD"))],
+    "ndx": [("Yahoo Finance", src_yfinance), ("Yahoo Finance", src_yahoo), ("FRED", src_fred("NASDAQCOM"))],
+    "vix": [("Yahoo Finance", src_yfinance), ("Yahoo Finance", src_yahoo), ("FRED", src_fred("VIXCLS"))],
+}
+
+
+def fetch_prices(key, symbol):
+    errs = []
+    for name, fn in SOURCES[key]:
         try:
-            r = requests.get(url, params={"range": "10y", "interval": "1d", "includePrePost": "false"},
-                             headers={"User-Agent": UA}, timeout=30)
-            r.raise_for_status()
-            res = r.json()["chart"]["result"][0]
-            off = res["meta"].get("gmtoffset", 0)
-            closes = res["indicators"]["quote"][0]["close"]
-            by_date = {}
-            for ts, c in zip(res["timestamp"], closes):
-                if c is None or not math.isfinite(c):
-                    continue
-                d = datetime.fromtimestamp(ts + off, tz=timezone.utc).strftime("%Y-%m-%d")
-                by_date[d] = float(c)
-            live = res["meta"].get("regularMarketPrice")
-            dates = sorted(by_date)
-            if live and dates:
-                by_date[dates[-1]] = float(live)
-            return dates, [by_date[d] for d in dates]
-        except Exception as e:  # prøv næste host
-            last_err = e
-    raise RuntimeError(f"Yahoo {symbol}: {last_err}")
+            dates, close = fn(symbol)
+            print(f"{key}: {name} OK ({len(dates)} dage, sidste {dates[-1]})")
+            return dates, close, name
+        except Exception as e:
+            errs.append(f"{name}: {str(e)[:120]}")
+            print(f"{key}: {name} fejlede: {e}")
+    raise RuntimeError(" | ".join(errs))
 
 
 def fetch_fear_greed():
@@ -240,10 +294,11 @@ def main():
                     "ndx": lambda: demo_series(4900, 0.0006, 0.013, 3650, True),
                     "vix": lambda: demo_vix(3650),
                 }[key]()
+                source = "Demo"
             else:
-                dates, close = fetch_yahoo(cfg["symbol"])
+                dates, close, source = fetch_prices(key, cfg["symbol"])
             out[key] = build_vix(dates, close) if key == "vix" else build_price_asset(dates, close, 0 if key == "btc" else 1)
-            out[key].update(name=cfg["name"], symbol=cfg["symbol"], updated=out["generated"])
+            out[key].update(name=cfg["name"], symbol=cfg["symbol"], updated=out["generated"], source=source)
         except Exception as e:
             print(f"FEJL {key}: {e}")
             out["errors"][key] = str(e)[:200]

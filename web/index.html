@@ -107,7 +107,7 @@ h3{font:700 14px/1.3 var(--body);margin:0}
 
   <div class="note">
     <p><b>Metode.</b> Trendkanal: lineær regression af log(kurs) mod tid over hele 10-årsperioden; båndene ligger ±1σ og ±2σ af residualerne fra trenden. σ-position viser, hvor mange standardafvigelser dagens kurs ligger fra trenden. MA200 = simpelt 200-dages gennemsnit. RSI = 14 dage (Wilder). VIX: Bollinger Bands 20 dage ± 2σ.</p>
-    <p><b>Kilder.</b> Kurser: Yahoo Finance (BTC-USD, ^IXIC, ^VIX). Fear &amp; Greed: CNN. Siden genbygges hver time; Nasdaq og VIX bevæger sig kun i amerikansk åbningstid. Ikke investeringsrådgivning.</p>
+    <p><b>Kilder.</b> Kurser: Yahoo Finance (BTC-USD, ^IXIC, ^VIX), med CryptoCompare og FRED som reserve – den aktuelle kilde står ved hver graf. Fear &amp; Greed: CNN. Siden genbygges hver time; Nasdaq og VIX bevæger sig kun i amerikansk åbningstid. Ikke investeringsrådgivning.</p>
   </div>
 </div>
 
@@ -203,7 +203,7 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     const a = data[key];
     if (!a) { S.innerHTML = `<h2>${title}</h2><div class="empty">Data kunne ikke hentes ved seneste kørsel.</div>`; return; }
     const s = a.stats;
-    S.append(el('div', {className: 's-head'}, `<h2>${title}</h2><span class="sub">${unitNote} · seneste ${a.dates[a.dates.length - 1]}</span>`));
+    S.append(el('div', {className: 's-head'}, `<h2>${title}</h2><span class="sub">${unitNote} · ${a.source || 'Yahoo Finance'} · seneste ${a.dates[a.dates.length - 1]}</span>`));
     const g = el('div', {className: 'grid2'}); S.append(g);
 
     // Panel 1: trendkanal
@@ -263,7 +263,7 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     const a = data.vix;
     if (!a) { S.innerHTML = '<h2>VIX</h2><div class="empty">Data kunne ikke hentes ved seneste kørsel.</div>'; return; }
     const s = a.stats;
-    S.append(el('div', {className: 's-head'}, `<h2>VIX · volatilitetsindeks</h2><span class="sub">seneste ${a.dates[a.dates.length - 1]}</span>`));
+    S.append(el('div', {className: 's-head'}, `<h2>VIX · volatilitetsindeks</h2><span class="sub">${a.source || 'Yahoo Finance'} · seneste ${a.dates[a.dates.length - 1]}</span>`));
     const p = el('div', {className: 'panel'});
     const head = el('div', {className: 'p-head'}, '<h3>Bollinger Bands (20 dage, ±2σ)</h3>');
     p.append(head);
