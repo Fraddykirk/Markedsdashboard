@@ -1,0 +1,61 @@
+name: Opdater dashboard
+
+on:
+  schedule:
+    - cron: "7 * * * *"   # hver time, 7 min over (UTC)
+  workflow_dispatch:      # mulighed for at køre manuelt fra fanen Actions
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Hent data og byg siden
+        run: |
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          export PREV_DATA_URL="https://${owner}.github.io/${GITHUB_REPOSITORY#*/}/data.json"
+          python scripts/build.py
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      # GitHub slår planlagte kørsler fra efter 60 dage uden aktivitet i repoet.
+      # Et lille dagligt commit holder dem kørende.
+      - name: Hold planlagte kørsler aktive
+        if: github.event_name == 'schedule'
+        run: |
+          today=$(date -u +%F)
+          if [ "$(cat .keepalive 2>/dev/null)" != "$today" ]; then
+            echo "$today" > .keepalive
+            git config user.name "dashboard-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .keepalive
+            git commit -m "keepalive $today [skip ci]"
+            git push
+          fi
