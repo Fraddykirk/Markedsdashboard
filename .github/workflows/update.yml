@@ -1,14 +1,14 @@
 name: Opdater dashboard
 
-# Opdatering hver time:
-# Hver kørsel bygger siden og venter derefter til næste hele time (+7 min),
+# Opdatering hver halve time:
+# Hver kørsel bygger siden og venter derefter til næste :07 eller :37,
 # hvorefter den selv starter næste kørsel. GitHubs egen tidsplan (schedule)
 # er upålidelig og bruges kun som reserve, hvis kæden skulle gå i stå.
 # Offentlige repositories har ubegrænsede gratis Actions-minutter.
 
 on:
   schedule:
-    - cron: "7 * * * *"   # reserve – GitHub springer ofte disse over
+    - cron: "7,37 * * * *"   # reserve – GitHub springer ofte disse over
   workflow_dispatch:      # manuel kørsel fra fanen Actions (starter også kæden)
   push:
     branches: [main]
@@ -70,7 +70,7 @@ jobs:
     needs: build-deploy
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 45
     steps:
       # GitHub slår planlagte kørsler fra efter 60 dage uden aktivitet – et lille dagligt commit forhindrer det.
       - uses: actions/checkout@v4
@@ -87,12 +87,12 @@ jobs:
             git push || true
           fi
 
-      - name: Vent til næste hele time (+7 min)
+      - name: Vent til næste halve time (:07 eller :37)
         run: |
           now=$(date -u +%s)
-          next=$(( (now / 3600 + 1) * 3600 + 420 ))
-          # Er der under 15 min til, hoppes en time videre, så vi ikke kører to gange tæt på hinanden
-          if [ $(( next - now )) -lt 900 ]; then next=$(( next + 3600 )); fi
+          next=$(( ((now - 420) / 1800 + 1) * 1800 + 420 ))
+          # Er der under 10 min til, hoppes en halv time videre, så vi ikke kører to gange tæt på hinanden
+          if [ $(( next - now )) -lt 600 ]; then next=$(( next + 1800 )); fi
           echo "Næste opdatering: $(date -u -d @$next '+%F %H:%M') UTC"
           sleep $(( next - now ))
 
