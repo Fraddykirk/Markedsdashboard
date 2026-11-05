@@ -1,25 +1,24 @@
 import requests, json, time
 UA={"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0 Safari/537.36"}
-def t(name, url, **kw):
+def t(name, url, n=400, **kw):
     try:
-        r=requests.get(url, headers={**UA, **kw.pop("headers",{})}, timeout=30, **kw)
-        print(f"\n## {name}: {r.status_code} ACAO={r.headers.get('access-control-allow-origin')} len={len(r.text)}")
-        print(r.text[:500].replace("\n"," | "))
+        r=requests.get(url, headers=UA, timeout=90, **kw)
+        print(f"\n## {name}: {r.status_code} len={len(r.text)}"); print(r.text[:n].replace("\n"," | ")); return r
     except Exception as e: print(f"\n## {name}: ERR {e}")
-t("FRED FEDFUNDS","https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&cosd=2024-01-01")
-t("FRED CPI","https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL&cosd=2025-01-01")
-t("DBnomics ISM","https://api.db.nomics.world/v22/series/ISM/pmi/pm?observations=1&format=json")
-t("DBnomics ISM search","https://api.db.nomics.world/v22/datasets/ISM?limit=50")
-t("CMC data-api FG","https://api.coinmarketcap.com/data-api/v3/fear-greed/chart?start=%d&end=%d"%(int(time.time())-86400*400,int(time.time())))
-t("CMC data-api FG latest","https://api.coinmarketcap.com/data-api/v3/fear-greed/latest")
-t("alternative.me","https://api.alternative.me/fng/?limit=3")
-t("Binance","https://api.binance.com/api/v3/klines?symbol=SOLUSDT&interval=1d&limit=2", headers={"Origin":"https://fraddykirk.github.io"})
-t("Coinbase","https://api.exchange.coinbase.com/products/SOL-USD/candles?granularity=86400", headers={"Origin":"https://fraddykirk.github.io"})
-t("SP500 list","https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv")
-t("Wiki NDX","https://en.wikipedia.org/wiki/Nasdaq-100")
-t("ISM site","https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/")
-t("TradingEconomics","https://tradingeconomics.com/united-states/business-confidence")
-import yfinance as yf
-for s in ["ETH-USD","NOVO-B.CO","NVDA"]:
-    df=yf.Ticker(s).history(period="10y"); print(f"\n## yf {s}: {len(df)} rows {df.index[0].date() if len(df) else ''} last {df['Close'].iloc[-1] if len(df) else ''}")
-t0=time.time(); df=yf.download(["AAPL","MSFT","GOOGL","AMZN","META","TSLA","AVGO","ASML","AMD","NFLX"]*1, period="3y", progress=False, threads=True)["Close"]; print("\n## yf.download 10:", df.shape, round(time.time()-t0,1),"s")
+r=t("DBn ISM pm","https://api.db.nomics.world/v22/series/ISM/pmi/pm?observations=1",50)
+if r: s=r.json()["series"]["docs"][0]; print("ISM last:", s["period"][-3:], s["value"][-3:], len(s["period"]))
+r=t("DBn BLS CPI","https://api.db.nomics.world/v22/series/BLS/cu/CUSR0000SA0?observations=1",50)
+if r and r.ok: s=r.json()["series"]["docs"][0]; print("CPI last:", s["period"][-3:], s["value"][-3:])
+r=t("DBn BLS core","https://api.db.nomics.world/v22/series/BLS/cu/CUSR0000SA0L1E?observations=1",50)
+if r and r.ok: s=r.json()["series"]["docs"][0]; print("core last:", s["period"][-3:], s["value"][-3:])
+t("BLS API","https://api.bls.gov/publicAPI/v1/timeseries/data/CUUR0000SA0",300)
+t("NYFed EFFR","https://markets.newyorkfed.org/api/rates/unsecured/effr/last/2.json",500)
+t("FRED 90s","https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&cosd=2026-01-01",200)
+t("FRED api.stlouisfed alt","https://api.stlouisfed.org/fred/series/observations?series_id=DFEDTARU&file_type=json",200)
+import pandas as pd, io
+try:
+    h=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers=UA,timeout=30).text
+    tabs=pd.read_html(io.StringIO(h)); nd=[x for x in tabs if "Ticker" in x.columns or "Symbol" in x.columns]; print("\nNDX tables:", [ (list(x.columns)[:3], len(x)) for x in nd])
+    h=requests.get("https://en.wikipedia.org/wiki/OMX_Copenhagen_25",headers=UA,timeout=30).text
+    tabs=pd.read_html(io.StringIO(h)); print("C25 tables:", [ (list(x.columns)[:4], len(x)) for x in tabs if len(x)>=20])
+except Exception as e: print("wiki err", e)
