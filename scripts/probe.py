@@ -1,16 +1,14 @@
-import requests, json, re, io
-import pandas as pd
-UA={"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0 Safari/537.36"}
-r=requests.get("https://api.db.nomics.world/v22/series/ISM/pmi?observations=1&limit=20",headers=UA,timeout=60).json()
-for s in r["series"]["docs"]:
-    print("DBN", s["series_code"], s.get("series_name"), s["period"][:2], s["period"][-2:], s["value"][-3:], len(s["period"]))
-h=requests.get("https://tradingeconomics.com/united-states/business-confidence",headers=UA,timeout=60).text
-tabs=pd.read_html(io.StringIO(h))
-for x in tabs: print("\nTE table", list(x.columns)); print(x.head(15).to_string()[:2500])
-h=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers=UA,timeout=30).text
-for x in pd.read_html(io.StringIO(h)):
-    if len(x)>90: print("\nNDX", list(x.columns), len(x), x.iloc[0].tolist())
-r=requests.post("https://api.bls.gov/publicAPI/v1/timeseries/data/",json={"seriesid":["CUUR0000SA0","CUUR0000SA0L1E"],"startyear":"2015","endyear":"2026"},headers=UA,timeout=60).json()
-print("\nBLS", r["status"], r.get("message"), [ (s["seriesID"], len(s["data"]), s["data"][0]["year"], s["data"][-1]["year"]) for s in r["Results"]["series"]])
-r=requests.get("https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json?startDate=2016-01-01&endDate=2026-11-05",headers=UA,timeout=60).json()
-print("EFFR", len(r["refRates"]), r["refRates"][-1]["effectiveDate"], r["refRates"][0]["effectiveDate"])
+import requests, json
+UA={"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0 Safari/537.36","Accept":"application/json, text/plain, */*"}
+for eid in [173, 733, 168, 69]:
+    try:
+        r=requests.get(f"https://sbcharts.investing.com/events_charts/us/{eid}.json",headers=UA,timeout=40)
+        print("INV",eid,r.status_code,len(r.text), r.text[:300])
+        if r.ok:
+            j=r.json(); d=j.get("data") or j.get("attr"); print(" keys", list(j.keys())[:10], "n", len(j.get("data",[])), j.get("data",[])[-2:] if j.get("data") else "")
+    except Exception as e: print("INV",eid,"ERR",e)
+r=requests.get("https://api.nasdaq.com/api/quote/list-type/nasdaq100",headers=UA,timeout=40)
+print("NASDAQ", r.status_code, r.text[:300])
+import io, pandas as pd
+h=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers={"User-Agent":UA["User-Agent"]},timeout=30).text
+tabs=pd.read_html(io.StringIO(h)); print("wiki tables", [(list(x.columns)[:3], len(x)) for x in tabs])
