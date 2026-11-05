@@ -350,6 +350,7 @@ def stock_universe():
             if "Ticker symbol" in t.columns:
                 for _, row in t.iterrows():
                     tk = str(row["Ticker symbol"]).strip().split(":")[-1].strip().replace(" ", "-")
+                    tk = {"NDA": "NDA-DK"}.get(tk, tk)  # Yahoo-koder der afviger
                     if tk and tk != "nan":
                         names.setdefault(tk + ".CO", str(row["Company"]))
     except Exception as e:
