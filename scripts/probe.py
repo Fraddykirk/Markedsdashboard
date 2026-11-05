@@ -1,24 +1,16 @@
-import requests, json, time
+import requests, json, re, io
+import pandas as pd
 UA={"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0 Safari/537.36"}
-def t(name, url, n=400, **kw):
-    try:
-        r=requests.get(url, headers=UA, timeout=90, **kw)
-        print(f"\n## {name}: {r.status_code} len={len(r.text)}"); print(r.text[:n].replace("\n"," | ")); return r
-    except Exception as e: print(f"\n## {name}: ERR {e}")
-r=t("DBn ISM pm","https://api.db.nomics.world/v22/series/ISM/pmi/pm?observations=1",50)
-if r: s=r.json()["series"]["docs"][0]; print("ISM last:", s["period"][-3:], s["value"][-3:], len(s["period"]))
-r=t("DBn BLS CPI","https://api.db.nomics.world/v22/series/BLS/cu/CUSR0000SA0?observations=1",50)
-if r and r.ok: s=r.json()["series"]["docs"][0]; print("CPI last:", s["period"][-3:], s["value"][-3:])
-r=t("DBn BLS core","https://api.db.nomics.world/v22/series/BLS/cu/CUSR0000SA0L1E?observations=1",50)
-if r and r.ok: s=r.json()["series"]["docs"][0]; print("core last:", s["period"][-3:], s["value"][-3:])
-t("BLS API","https://api.bls.gov/publicAPI/v1/timeseries/data/CUUR0000SA0",300)
-t("NYFed EFFR","https://markets.newyorkfed.org/api/rates/unsecured/effr/last/2.json",500)
-t("FRED 90s","https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFEDTARU&cosd=2026-01-01",200)
-t("FRED api.stlouisfed alt","https://api.stlouisfed.org/fred/series/observations?series_id=DFEDTARU&file_type=json",200)
-import pandas as pd, io
-try:
-    h=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers=UA,timeout=30).text
-    tabs=pd.read_html(io.StringIO(h)); nd=[x for x in tabs if "Ticker" in x.columns or "Symbol" in x.columns]; print("\nNDX tables:", [ (list(x.columns)[:3], len(x)) for x in nd])
-    h=requests.get("https://en.wikipedia.org/wiki/OMX_Copenhagen_25",headers=UA,timeout=30).text
-    tabs=pd.read_html(io.StringIO(h)); print("C25 tables:", [ (list(x.columns)[:4], len(x)) for x in tabs if len(x)>=20])
-except Exception as e: print("wiki err", e)
+r=requests.get("https://api.db.nomics.world/v22/series/ISM/pmi?observations=1&limit=20",headers=UA,timeout=60).json()
+for s in r["series"]["docs"]:
+    print("DBN", s["series_code"], s.get("series_name"), s["period"][:2], s["period"][-2:], s["value"][-3:], len(s["period"]))
+h=requests.get("https://tradingeconomics.com/united-states/business-confidence",headers=UA,timeout=60).text
+tabs=pd.read_html(io.StringIO(h))
+for x in tabs: print("\nTE table", list(x.columns)); print(x.head(15).to_string()[:2500])
+h=requests.get("https://en.wikipedia.org/wiki/Nasdaq-100",headers=UA,timeout=30).text
+for x in pd.read_html(io.StringIO(h)):
+    if len(x)>90: print("\nNDX", list(x.columns), len(x), x.iloc[0].tolist())
+r=requests.post("https://api.bls.gov/publicAPI/v1/timeseries/data/",json={"seriesid":["CUUR0000SA0","CUUR0000SA0L1E"],"startyear":"2015","endyear":"2026"},headers=UA,timeout=60).json()
+print("\nBLS", r["status"], r.get("message"), [ (s["seriesID"], len(s["data"]), s["data"][0]["year"], s["data"][-1]["year"]) for s in r["Results"]["series"]])
+r=requests.get("https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json?startDate=2016-01-01&endDate=2026-11-05",headers=UA,timeout=60).json()
+print("EFFR", len(r["refRates"]), r["refRates"][-1]["effectiveDate"], r["refRates"][0]["effectiveDate"])
