@@ -1,9 +1,15 @@
 name: Opdater dashboard
 
+# Opdatering hver time:
+# Hver kørsel bygger siden og venter derefter til næste hele time (+7 min),
+# hvorefter den selv starter næste kørsel. GitHubs egen tidsplan (schedule)
+# er upålidelig og bruges kun som reserve, hvis kæden skulle gå i stå.
+# Offentlige repositories har ubegrænsede gratis Actions-minutter.
+
 on:
   schedule:
-    - cron: "7 * * * *"   # hver time, 7 min over (UTC)
-  workflow_dispatch:      # mulighed for at køre manuelt fra fanen Actions
+    - cron: "7 * * * *"   # reserve – GitHub springer ofte disse over
+  workflow_dispatch:      # manuel kørsel fra fanen Actions (starter også kæden)
   push:
     branches: [main]
 
@@ -11,14 +17,14 @@ permissions:
   contents: write
   pages: write
   id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
+  actions: write
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -45,10 +51,15 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v4
 
-      # GitHub slår planlagte kørsler fra efter 60 dage uden aktivitet i repoet.
-      # Et lille dagligt commit holder dem kørende.
-      - name: Hold planlagte kørsler aktive
-        if: github.event_name == 'schedule'
+  next-run:
+    needs: build-deploy
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      # GitHub slår planlagte kørsler fra efter 60 dage uden aktivitet – et lille dagligt commit forhindrer det.
+      - uses: actions/checkout@v4
+      - name: Hold repoet aktivt
         run: |
           today=$(date -u +%F)
           if [ "$(cat .keepalive 2>/dev/null)" != "$today" ]; then
@@ -57,5 +68,29 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .keepalive
             git commit -m "keepalive $today [skip ci]"
-            git push
+            git pull --rebase -q || true
+            git push || true
+          fi
+
+      - name: Vent til næste hele time (+7 min)
+        run: |
+          now=$(date -u +%s)
+          next=$(( (now / 3600 + 1) * 3600 + 420 ))
+          # Er der under 15 min til, hoppes en time videre, så vi ikke kører to gange tæt på hinanden
+          if [ $(( next - now )) -lt 900 ]; then next=$(( next + 3600 )); fi
+          echo "Næste opdatering: $(date -u -d @$next '+%F %H:%M') UTC"
+          sleep $(( next - now ))
+
+      - name: Start næste kørsel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Undgå dobbelte kæder: findes en NYERE kørsel, der venter eller kører, overlader vi kæden til den
+          others=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/update.yml/runs?per_page=20" \
+            --jq "[.workflow_runs[] | select(.id > $GITHUB_RUN_ID and (.status == \"queued\" or .status == \"in_progress\" or .status == \"waiting\" or .status == \"pending\"))] | length")
+          if [ "$others" -gt 0 ]; then
+            echo "En anden kørsel er allerede i gang – kæden fortsætter derfra."
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/update.yml/dispatches" -f ref=main
+            echo "Næste kørsel startet."
           fi
