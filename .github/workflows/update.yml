@@ -48,7 +48,22 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+      # GitHub Pages svarer af og til med midlertidige serverfejl – prøv op til 3 gange
+      - id: deploy1
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Vent før nyt forsøg
+        if: steps.deploy1.outcome == 'failure'
+        run: sleep 60
+      - id: deploy2
+        if: steps.deploy1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Vent før sidste forsøg
+        if: steps.deploy2.outcome == 'failure'
+        run: sleep 180
       - id: deployment
+        if: steps.deploy2.outcome == 'failure'
         uses: actions/deploy-pages@v4
 
   next-run:
