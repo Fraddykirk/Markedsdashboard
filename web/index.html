@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Markedsdashboard</title>
-<meta name="description" content="BTC, Nasdaq, VIX og CNN Fear &amp; Greed – opdateres hver time.">
+<meta name="description" content="Makro, aktier og krypto: ISM PMI, Fed-rente, CPI, Nasdaq, VIX, BTC, ETH og Fear &amp; Greed – opdateres hver halve time.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: kontrolrum – en sticky statuslinje, fire nøgletal øverst, derefter én sektion pr. marked med grafer under hinanden. */
+/* Layout: kontrolrum – sticky statuslinje, fire nøgletal øverst, faner (Makro/Aktier/Krypto), én sektion pr. indikator. */
 :root{
   --bg:#EEF1F4; --surface:#FFFFFF; --ink:#13202B; --muted:#5A6977; --line:#D9E0E6; --grid:#EDF1F4;
-  --btc:#D9771A; --ndx:#1D6F8C; --vix:#6A4CB5; --ma:#13202B;
+  --btc:#D9771A; --eth:#5A63C9; --ndx:#1D6F8C; --vix:#6A4CB5; --ma:#13202B; --stk:#0F7B6C; --tok:#B4469B;
   --band1:#3E8A6B; --band2:#B5483B; --trend:#7D8B97;
   --good:#1D7F52; --bad:#BF3F35; --warn:#B07A0B; --goodbg:#E3F3EB; --badbg:#FBE7E5; --warnbg:#FBF0D9; --neutbg:#E9EDF1;
   --display:"Archivo",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -22,17 +22,18 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0D1318; --surface:#141C23; --ink:#E4EBF1; --muted:#8B9AA7; --line:#24313B; --grid:#1A242C;
-  --btc:#F0973A; --ndx:#4FB3D3; --vix:#A58BEB; --ma:#E4EBF1;
+  --btc:#F0973A; --eth:#8F98F2; --ndx:#4FB3D3; --vix:#A58BEB; --ma:#E4EBF1; --stk:#3CC1AC; --tok:#E37ACB;
   --band1:#5FBF97; --band2:#E57367; --trend:#7E8E9B;
   --good:#4CC28A; --bad:#EE6F64; --warn:#E3AE43; --goodbg:#16302A; --badbg:#3A1D1C; --warnbg:#372C14; --neutbg:#1E2932;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0D1318; --surface:#141C23; --ink:#E4EBF1; --muted:#8B9AA7; --line:#24313B; --grid:#1A242C;
-  --btc:#F0973A; --ndx:#4FB3D3; --vix:#A58BEB; --ma:#E4EBF1;
+  --btc:#F0973A; --eth:#8F98F2; --ndx:#4FB3D3; --vix:#A58BEB; --ma:#E4EBF1; --stk:#3CC1AC; --tok:#E37ACB;
   --band1:#5FBF97; --band2:#E57367; --trend:#7E8E9B;
   --good:#4CC28A; --bad:#EE6F64; --warn:#E3AE43; --goodbg:#16302A; --badbg:#3A1D1C; --warnbg:#372C14; --neutbg:#1E2932;
   color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:max(32px,env(safe-area-inset-bottom,0px))}
@@ -87,6 +88,21 @@ h3{font:700 14px/1.3 var(--body);margin:0}
 .banner{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:10px 12px;font-size:13px}
 .empty{color:var(--muted);font-size:13px;padding:20px 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs button{font:700 15px/1 var(--display);font-stretch:85%;letter-spacing:.01em;background:none;border:0;color:var(--muted);padding:12px 16px 11px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs button:hover{color:var(--ink)}
+.tabs button:focus-visible,.lookup input:focus-visible,.lookup button:focus-visible{outline:2px solid var(--ndx);outline-offset:2px}
+.pane{display:grid;gap:28px}
+.lookup{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lookup input{font:600 14px var(--mono);text-transform:uppercase;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:14ch;min-width:0}
+.lookup button{font:600 13px var(--body);background:var(--ink);color:var(--surface);border:0;border-radius:7px;padding:9px 14px;cursor:pointer}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.quick button{font:600 12px var(--mono);background:var(--neutbg);color:var(--ink);border:0;border-radius:999px;padding:5px 9px;cursor:pointer}
+.quick button:hover{background:var(--line)}
+.msg{font-size:13px;color:var(--muted)}
+.msg.err{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -100,14 +116,33 @@ h3{font:700 14px/1.3 var(--body);margin:0}
 
   <div class="tiles" id="tiles"></div>
 
-  <section id="btc"></section>
-  <section id="ndx"></section>
-  <section id="vix"></section>
-  <section id="fng"></section>
+  <nav class="tabs" role="tablist" aria-label="Visning">
+    <button role="tab" id="tab-makro" aria-controls="pane-makro" data-pane="makro">Makro</button>
+    <button role="tab" id="tab-aktier" aria-controls="pane-aktier" data-pane="aktier">Aktier</button>
+    <button role="tab" id="tab-krypto" aria-controls="pane-krypto" data-pane="krypto">Krypto</button>
+  </nav>
+
+  <div class="pane" id="pane-makro" role="tabpanel" aria-labelledby="tab-makro">
+    <section id="ism"></section>
+    <section id="fed"></section>
+    <section id="cpi"></section>
+  </div>
+  <div class="pane" id="pane-aktier" role="tabpanel" aria-labelledby="tab-aktier" hidden>
+    <section id="ndx"></section>
+    <section id="lookup"></section>
+    <section id="vix"></section>
+    <section id="fng"></section>
+  </div>
+  <div class="pane" id="pane-krypto" role="tabpanel" aria-labelledby="tab-krypto" hidden>
+    <section id="btc"></section>
+    <section id="eth"></section>
+    <section id="token"></section>
+    <section id="cmc"></section>
+  </div>
 
   <div class="note">
-    <p><b>Metode.</b> Trendkanal: lineær regression af log(kurs) mod tid over hele 10-årsperioden; båndene ligger ±1σ og ±2σ af residualerne fra trenden. σ-position viser, hvor mange standardafvigelser dagens kurs ligger fra trenden. MA200 = simpelt 200-dages gennemsnit. RSI = 14 dage (Wilder). VIX: Bollinger Bands 20 dage ± 2σ.</p>
-    <p><b>Kilder.</b> Kurser: Yahoo Finance (BTC-USD, ^IXIC, ^VIX), med CryptoCompare og FRED som reserve – den aktuelle kilde står ved hver graf. Fear &amp; Greed: CNN. Siden genbygges hver halve time; Nasdaq og VIX bevæger sig kun i amerikansk åbningstid. Ikke investeringsrådgivning.</p>
+    <p><b>Metode.</b> Trendkanal: lineær regression af log(kurs) mod tid over hele perioden; båndene ligger ±1σ og ±2σ af residualerne fra trenden. σ-position viser, hvor mange standardafvigelser dagens kurs ligger fra trenden. MA200 = simpelt 200-dages gennemsnit. RSI = 14 dage (Wilder). VIX: Bollinger Bands 20 dage ± 2σ. CPI vises som årlig stigning i procent (ikke sæsonkorrigeret).</p>
+    <p><b>Kilder.</b> Kurser: Yahoo Finance (reserve: CryptoCompare). Tokens i Krypto-søgningen hentes direkte fra Binance (reserve: Coinbase), når du søger. Fear &amp; Greed: CNN og CoinMarketCap. ISM PMI: Institute for Supply Management via Nasdaq og Trading Economics. Fed-rente: New York Fed. CPI: U.S. Bureau of Labor Statistics. Siden genbygges hver halve time; aktier og VIX bevæger sig kun i børsens åbningstid. Ikke investeringsrådgivning.</p>
   </div>
 </div>
 
@@ -116,12 +151,19 @@ h3{font:700 14px/1.3 var(--body);margin:0}
 (() => {
   const LC = window.LightweightCharts;
   const nf = (d) => new Intl.NumberFormat('da-DK', {minimumFractionDigits: d, maximumFractionDigits: d});
-  const fmt = (v, d = 0) => v == null ? '–' : nf(d).format(v);
-  const pct = (v, d = 1) => v == null ? '–' : (v > 0 ? '+' : '') + nf(d).format(v) + ' %';
+  const fmt = (v, d = 0) => v == null || !isFinite(v) ? '–' : nf(d).format(v);
+  const autoD = (v) => { const a = Math.abs(v); return a === 0 || a >= 1000 ? 0 : a >= 1 ? 2 : a >= 0.01 ? 4 : 8; };
+  const fmtA = (v) => v == null ? '–' : fmt(v, autoD(v));
+  const pct = (v, d = 1) => v == null || !isFinite(v) ? '–' : (v > 0 ? '+' : '') + nf(d).format(v) + ' %';
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const el = (tag, attrs = {}, html = '') => { const e = document.createElement(tag); Object.assign(e, attrs); if (html) e.innerHTML = html; return e; };
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  const store = {get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }};
   const STALE_MS = 3 * 3600e3;
-  let charts = [];   // {chart, kind}
+  const PANES = ['makro', 'aktier', 'krypto'];
+  const charts = {makro: [], aktier: [], krypto: []};
+  const dirty = {makro: true, aktier: true, krypto: true};
+  let curPane = 'makro', building = 'makro';
   let data = null;
 
   // ---------- tema ----------
@@ -134,25 +176,27 @@ h3{font:700 14px/1.3 var(--body);margin:0}
       crosshair: {horzLine: {labelBackgroundColor: css('--ink')}, vertLine: {labelBackgroundColor: css('--ink')}},
     };
   }
-  function retheme() { if (data) render(data); }
+  function retheme() { PANES.forEach(p => dirty[p] = true); if (data) { tiles(data); showPane(curPane, false); } }
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', retheme);
   new MutationObserver(retheme).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
 
   // ---------- hjælpere ----------
   const line = (dates, vals) => dates.map((t, i) => vals[i] == null ? {time: t} : {time: t, value: vals[i]});
   function mkChart(container, extra = {}) {
-    const c = LC.createChart(container, Object.assign({autoSize: true, handleScale: {axisPressedMouseMove: true}, localization: {locale: 'da-DK', priceFormatter: (v) => fmt(v, Math.abs(v) < 1000 ? 1 : 0)}}, chartOpts(), extra));
-    charts.push(c);
+    const c = LC.createChart(container, Object.assign({autoSize: true, handleScale: {axisPressedMouseMove: true}, localization: {locale: 'da-DK', priceFormatter: fmtA}}, chartOpts(), extra));
+    charts[building].push(c);
     return c;
   }
+  function dropChart(c) { for (const p of PANES) { const i = charts[p].indexOf(c); if (i >= 0) { charts[p].splice(i, 1); c.remove(); return; } } }
   function addLine(chart, color, width = 2, style = 0, title = '') {
     return chart.addLineSeries({color, lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: !!title, title, crosshairMarkerVisible: width > 1});
   }
   function setRange(chart, dates, years) {
     if (!years) { chart.timeScale().fitContent(); return; }
     const end = dates[dates.length - 1];
-    const d = new Date(end); d.setFullYear(d.getFullYear() - years);
-    chart.timeScale().setVisibleRange({from: d.toISOString().slice(0, 10), to: end});
+    const d = new Date(end); d.setMonth(d.getMonth() - Math.round(years * 12));
+    const from = d.toISOString().slice(0, 10);
+    chart.timeScale().setVisibleRange({from: from < dates[0] ? dates[0] : from, to: end});
   }
   function segButtons(options, initial, onPick) {
     const wrap = el('div', {className: 'seg', role: 'group'});
@@ -165,6 +209,8 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     return wrap;
   }
   const legend = (items) => '<div class="legend">' + items.map(([c, t, dash]) => `<span><i class="${dash ? 'dash' : ''}" style="border-color:${c}"></i>${t}</span>`).join('') + '</div>';
+  const later = (fn) => requestAnimationFrame(() => requestAnimationFrame(fn));
+  const sma = (x, n) => { const o = new Array(x.length).fill(null); let s = 0; for (let i = 0; i < x.length; i++) { s += x[i]; if (i >= n) s -= x[i - n]; if (i >= n - 1) o[i] = s / n; } return o; };
 
   function rsiChip(r) { return r == null ? '' : r >= 70 ? `<span class="chip warn">RSI ${fmt(r, 0)} · overkøbt</span>` : r <= 30 ? `<span class="chip warn">RSI ${fmt(r, 0)} · oversolgt</span>` : `<span class="chip">RSI ${fmt(r, 0)}</span>`; }
   function maChip(v) { return v == null ? '' : `<span class="chip ${v >= 0 ? 'good' : 'bad'}">${v >= 0 ? 'Over' : 'Under'} MA200 ${pct(v)}</span>`; }
@@ -175,40 +221,63 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     return `<span class="chip ${cls}">${z >= 0 ? '+' : '−'}${fmt(a, 2)}σ ${side} trend</span>`;
   }
   const stale = (iso) => iso && (Date.now() - new Date(iso).getTime() > STALE_MS);
+  const missing = (S, title, what) => { S.innerHTML = `<div class="s-head"><h2>${title}</h2></div><div class="empty">${what || 'Data kunne ikke hentes ved seneste kørsel.'}</div>`; };
+
+  // ---------- faner ----------
+  function showPane(p, scrollTop) {
+    if (!PANES.includes(p)) p = 'makro';
+    curPane = p;
+    PANES.forEach(x => {
+      document.getElementById('pane-' + x).hidden = x !== p;
+      document.getElementById('tab-' + x).setAttribute('aria-selected', String(x === p));
+      document.getElementById('tab-' + x).tabIndex = x === p ? 0 : -1;
+    });
+    if (data && dirty[p]) renderPane(p);
+    if (location.hash !== '#' + p) history.replaceState(null, '', '#' + p);
+    store.set('pane', p);
+  }
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showPane(b.dataset.pane)));
+  document.querySelector('.tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = PANES.indexOf(curPane) + (e.key === 'ArrowRight' ? 1 : -1);
+    const p = PANES[(i + PANES.length) % PANES.length]; showPane(p); document.getElementById('tab-' + p).focus();
+  });
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (PANES.includes(h) && h !== curPane) showPane(h); });
 
   // ---------- nøgletal ----------
   function tiles(d) {
     const T = document.getElementById('tiles'); T.innerHTML = '';
-    const add = (href, color, label, big, chg, chips, upd) => {
-      const a = el('a', {className: 'tile', href});
+    const add = (pane, sec, color, label, big, chg, chips, upd) => {
+      const a = el('a', {className: 'tile', href: '#' + pane});
       a.innerHTML = `<div class="t-head"><span class="label"><span class="swatch" style="background:${color}"></span>${label}</span>${chg}</div>
         <div class="big">${big}</div><div class="chips">${chips}${stale(upd) ? '<span class="chip warn">Ikke opdateret</span>' : ''}</div>`;
+      a.addEventListener('click', (e) => { e.preventDefault(); showPane(pane); later(() => document.getElementById(sec).scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'})); });
       T.append(a);
     };
     const chg = (v) => v == null ? '' : `<span class="chg ${v >= 0 ? 'up' : 'down'}">${pct(v, 2)}</span>`;
-    if (d.btc) { const s = d.btc.stats; add('#btc', css('--btc'), 'Bitcoin · USD', fmt(s.last, 0), chg(s.chg1d), maChip(s.vsSma) + rsiChip(s.rsi) + zChip(s.z), d.btc.updated); }
-    if (d.ndx) { const s = d.ndx.stats; add('#ndx', css('--ndx'), 'Nasdaq Composite', fmt(s.last, 0), chg(s.chg1d), maChip(s.vsSma) + rsiChip(s.rsi) + zChip(s.z), d.ndx.updated); }
+    if (d.btc) { const s = d.btc.stats; add('krypto', 'btc', css('--btc'), 'Bitcoin · USD', fmt(s.last, 0), chg(s.chg1d), maChip(s.vsSma) + rsiChip(s.rsi) + zChip(s.z), d.btc.updated); }
+    if (d.ndx) { const s = d.ndx.stats; add('aktier', 'ndx', css('--ndx'), 'Nasdaq Composite', fmt(s.last, 0), chg(s.chg1d), maChip(s.vsSma) + rsiChip(s.rsi) + zChip(s.z), d.ndx.updated); }
     if (d.vix) {
       const s = d.vix.stats;
       const lvl = s.last >= 30 ? '<span class="chip bad">Høj frygt (≥30)</span>' : s.last >= 20 ? '<span class="chip warn">Forhøjet (20–30)</span>' : '<span class="chip good">Rolig (&lt;20)</span>';
       const bb = s.pctB > 1 ? '<span class="chip bad">Over øvre bånd</span>' : s.pctB < 0 ? '<span class="chip good">Under nedre bånd</span>' : `<span class="chip">%B ${fmt(s.pctB, 2)}</span>`;
-      add('#vix', css('--vix'), 'VIX', fmt(s.last, 2), chg(s.chg1d), lvl + bb, d.vix.updated);
+      add('aktier', 'vix', css('--vix'), 'VIX', fmt(s.last, 2), chg(s.chg1d), lvl + bb, d.vix.updated);
     }
-    if (d.fng) { const f = d.fng; const z = fngZone(f.score); add('#fng', z.color, 'CNN Fear &amp; Greed', fmt(f.score, 0), '', `<span class="chip ${z.cls}">${z.label}</span>` + (f.previousClose != null ? `<span class="chip">I går ${fmt(f.previousClose, 0)}</span>` : ''), f.updated); }
+    if (d.fng) { const f = d.fng; const z = cnnZone(f.score); add('aktier', 'fng', z.color, 'CNN Fear &amp; Greed', fmt(f.score, 0), '', `<span class="chip ${z.cls}">${z.label}</span>` + (f.previousClose != null ? `<span class="chip">I går ${fmt(f.previousClose, 0)}</span>` : ''), f.updated); }
   }
 
-  // ---------- BTC / Nasdaq ----------
+  // ---------- BTC / ETH / Nasdaq ----------
   function priceSection(key, color, title, unitNote, digits) {
     const S = document.getElementById(key); S.innerHTML = '';
     const a = data[key];
-    if (!a) { S.innerHTML = `<h2>${title}</h2><div class="empty">Data kunne ikke hentes ved seneste kørsel.</div>`; return; }
+    if (!a) return missing(S, title);
     const s = a.stats;
+    const yrs = Math.round((new Date(a.dates[a.dates.length - 1]) - new Date(a.dates[0])) / 3.156e10);
     S.append(el('div', {className: 's-head'}, `<h2>${title}</h2><span class="sub">${unitNote} · ${a.source || 'Yahoo Finance'} · seneste ${a.dates[a.dates.length - 1]}</span>`));
     const g = el('div', {className: 'grid2'}); S.append(g);
 
-    // Panel 1: trendkanal
     const p1 = el('div', {className: 'panel'});
-    p1.innerHTML = `<div class="p-head"><h3>10 år · trendkanal ±1σ / ±2σ <span class="sub">(log-skala)</span></h3></div>
+    p1.innerHTML = `<div class="p-head"><h3>${yrs} år · trendkanal ±1σ / ±2σ <span class="sub">(log-skala)</span></h3></div>
       ${legend([[color, 'Kurs'], [css('--trend'), 'Trend'], [css('--band1'), '±1σ', 1], [css('--band2'), '±2σ', 1]])}`;
     const c1 = el('div', {className: 'chart'}); p1.append(c1);
     const sig = a.sigma, mult = (k) => Math.exp(k * sig);
@@ -226,9 +295,8 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     addLine(ch1, css('--band1'), 1, 2).setData(line(a.dates, band(-1)));
     addLine(ch1, css('--band2'), 1, 2).setData(line(a.dates, band(-2)));
     addLine(ch1, color, 2, 0, title).setData(line(a.dates, a.close));
-    requestAnimationFrame(() => ch1.timeScale().fitContent());
+    later(() => ch1.timeScale().fitContent());
 
-    // Panel 2: MA200 + RSI
     const p2 = el('div', {className: 'panel'});
     const head = el('div', {className: 'p-head'}, `<h3>200-dages glidende gennemsnit + RSI(14)</h3>`);
     p2.append(head);
@@ -248,20 +316,144 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     rs.setData(line(a.dates, a.rsi));
     rs.createPriceLine({price: 70, color: css('--bad'), lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: ''});
     rs.createPriceLine({price: 30, color: css('--good'), lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: ''});
-    // synkroniser tidsakser
     let syncing = false;
     const link = (from, to) => from.timeScale().subscribeVisibleLogicalRangeChange(r => { if (syncing || !r) return; syncing = true; to.timeScale().setVisibleLogicalRange(r); syncing = false; });
     link(ch2, ch3); link(ch3, ch2);
     const apply = (y) => { setRange(ch2, a.dates, y); };
     head.append(segButtons([['1Å', 1], ['3Å', 3], ['5Å', 5], ['Alt', 0]], 3, apply));
-    requestAnimationFrame(() => apply(3));
+    later(() => apply(3));
+  }
+
+  // ---------- kurs + MA200 (aktier og tokens) ----------
+  function maPanel(host, {title, sub, dates, close, ma, color, note}) {
+    host.innerHTML = '';
+    const n = close.length, last = close[n - 1], prev = close[n - 2];
+    const m = ma[n - 1];
+    const yIdx = dates.findIndex(d => d >= new Date(new Date(dates[n - 1]) - 3.156e10).toISOString().slice(0, 10));
+    const y1 = yIdx > 0 ? (last / close[yIdx] - 1) * 100 : null;
+    const head = el('div', {className: 'p-head'}, `<h3>${title} <span class="sub">${sub}</span></h3>`);
+    host.append(head);
+    host.insertAdjacentHTML('beforeend', legend([[color, 'Kurs'], [css('--ma'), 'MA200']]));
+    const c = el('div', {className: 'chart'}); host.append(c);
+    host.append(el('div', {className: 'kv'}, `
+      <div><span class="label">Kurs</span><b>${fmtA(last)}</b></div>
+      <div><span class="label">I dag</span><b class="${last >= prev ? 'up' : 'down'}">${pct((last / prev - 1) * 100, 2)}</b></div>
+      <div><span class="label">MA200</span><b>${m == null ? '–' : fmtA(m)}</b></div>
+      <div><span class="label">Afstand til MA200</span><b class="${m != null && last >= m ? 'up' : 'down'}">${m == null ? '–' : pct((last / m - 1) * 100)}</b></div>
+      <div><span class="label">1 år</span><b class="${y1 >= 0 ? 'up' : 'down'}">${pct(y1)}</b></div>`));
+    if (note) host.append(el('div', {className: 'msg'}, note));
+    const ch = mkChart(c);
+    addLine(ch, css('--ma'), 2, 0, 'MA200').setData(line(dates, ma));
+    addLine(ch, color, 2, 0, title.replace(/<[^>]+>/g, '')).setData(line(dates, close));
+    head.append(segButtons([['6M', .5], ['1Å', 1], ['2Å', 2], ['Alt', 0]], 1, (y) => setRange(ch, dates, y)));
+    later(() => setRange(ch, dates, 1));
+    return ch;
+  }
+
+  // ---------- aktiesøgning ----------
+  let stockIndex = null, stockChart = null;
+  async function loadStockIndex() {
+    if (stockIndex) return stockIndex;
+    try { const r = await fetch('stocks/index.json', {cache: 'no-store'}); stockIndex = await r.json(); } catch (e) { stockIndex = []; }
+    return stockIndex;
+  }
+  function lookupSection() {
+    const S = document.getElementById('lookup'); S.innerHTML = '';
+    S.append(el('div', {className: 's-head'}, `<h2>Aktie · kurs og MA200</h2><span class="sub">S&amp;P 500, Nasdaq-100, C25 og din watchlist</span>`));
+    const p = el('div', {className: 'panel'});
+    const form = el('form', {className: 'lookup', autocomplete: 'off'});
+    form.innerHTML = `<label class="label" for="stock-q">Ticker</label>
+      <input id="stock-q" list="stock-list" placeholder="fx NVDA" spellcheck="false" aria-describedby="stock-msg">
+      <datalist id="stock-list"></datalist><button type="submit">Vis</button>
+      <div class="quick">${['NVDA', 'MSFT', 'AAPL', 'ASML.AS', 'NOVO-B.CO', 'QQQ'].map(t => `<button type="button" data-t="${t}">${t}</button>`).join('')}</div>`;
+    const msg = el('div', {className: 'msg', id: 'stock-msg'});
+    const out = el('div', {style: 'display:grid;gap:10px;min-width:0'});
+    p.append(form, msg, out); S.append(p);
+    const input = form.querySelector('input');
+    loadStockIndex().then(ix => {
+      form.querySelector('datalist').innerHTML = ix.map(([t, n]) => `<option value="${esc(t)}">${esc(n)}</option>`).join('');
+      show(store.get('stock') || 'NVDA');
+    });
+    async function show(q) {
+      q = (q || '').trim().toUpperCase(); if (!q) return;
+      input.value = q;
+      const ix = await loadStockIndex();
+      let hit = ix.find(r => r[0] === q) || ix.find(r => r[0] === q.replace('.', '-')) || ix.find(r => r[1].toUpperCase() === q) || ix.find(r => r[1].toUpperCase().startsWith(q));
+      if (!hit) { msg.className = 'msg err'; msg.textContent = `${q} er ikke i listen. Tilføj den i watchlist.txt i dit GitHub-repo (Yahoo Finance-kode, fx SAP.DE), så kommer den med ved næste opdatering.`; return; }
+      msg.className = 'msg'; msg.textContent = 'Henter …';
+      try {
+        const r = await fetch('stocks/' + hit[2], {cache: 'no-store'}); const s = await r.json();
+        if (stockChart) { dropChart(stockChart); stockChart = null; }
+        building = 'aktier';
+        stockChart = maPanel(out, {title: esc(s.t), sub: esc(s.n) + ' · seneste ' + s.dates[s.dates.length - 1], dates: s.dates, close: s.close, ma: s.sma200, color: css('--stk')});
+        msg.textContent = ''; store.set('stock', s.t);
+      } catch (e) { msg.className = 'msg err'; msg.textContent = 'Kunne ikke hente kursen. Prøv igen om lidt.'; }
+    }
+    form.addEventListener('submit', (e) => { e.preventDefault(); show(input.value); });
+    form.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () => show(b.dataset.t)));
+    input.addEventListener('change', () => { if (stockIndex && stockIndex.some(r => r[0] === input.value.trim().toUpperCase())) show(input.value); });
+  }
+
+  // ---------- tokensøgning (live fra Binance / Coinbase) ----------
+  const TOKENS = ['BTC', 'ETH', 'SOL', 'XRP', 'BNB', 'DOGE', 'ADA', 'AVAX', 'LINK', 'DOT', 'SUI', 'TON', 'TRX', 'LTC', 'NEAR', 'UNI', 'AAVE', 'ATOM', 'ARB', 'OP', 'APT', 'INJ', 'RENDER', 'FET', 'TAO', 'HBAR', 'XLM', 'PEPE', 'SHIB', 'ONDO', 'HYPE', 'ENA', 'POL', 'FIL', 'ICP', 'ETC', 'MKR', 'LDO', 'JUP', 'WIF'];
+  let tokenChart = null;
+  async function fetchToken(sym) {
+    const ok = (r) => { if (!r.ok) throw new Error(r.status); return r.json(); };
+    for (const host of ['https://data-api.binance.vision', 'https://api.binance.com']) {
+      try {
+        const k = await fetch(`${host}/api/v3/klines?symbol=${sym}USDT&interval=1d&limit=1000`).then(ok);
+        if (Array.isArray(k) && k.length > 20) return {src: 'Binance ' + sym + '/USDT', rows: k.map(x => [new Date(x[0]).toISOString().slice(0, 10), +x[4]])};
+      } catch (e) {}
+    }
+    // Coinbase: maks 300 dage pr. kald
+    const rows = []; let end = Math.floor(Date.now() / 1000);
+    for (let i = 0; i < 4; i++) {
+      const start = end - 299 * 86400;
+      let k;
+      try { k = await fetch(`https://api.exchange.coinbase.com/products/${sym}-USD/candles?granularity=86400&start=${new Date(start * 1000).toISOString()}&end=${new Date(end * 1000).toISOString()}`).then(ok); } catch (e) { break; }
+      if (!Array.isArray(k) || !k.length) break;
+      k.forEach(x => rows.push([new Date(x[0] * 1000).toISOString().slice(0, 10), +x[4]]));
+      end = start - 86400;
+    }
+    if (rows.length > 20) { const m = new Map(rows); return {src: 'Coinbase ' + sym + '/USD', rows: [...m.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)}; }
+    throw new Error('ikke fundet');
+  }
+  function tokenSection() {
+    const S = document.getElementById('token'); S.innerHTML = '';
+    S.append(el('div', {className: 's-head'}, `<h2>Token · kurs og MA200</h2><span class="sub">hentes live, når du søger</span>`));
+    const p = el('div', {className: 'panel'});
+    const form = el('form', {className: 'lookup', autocomplete: 'off'});
+    form.innerHTML = `<label class="label" for="token-q">Token</label>
+      <input id="token-q" list="token-list" placeholder="fx SOL" spellcheck="false" aria-describedby="token-msg">
+      <datalist id="token-list">${TOKENS.map(t => `<option value="${t}">`).join('')}</datalist><button type="submit">Vis</button>
+      <div class="quick">${['SOL', 'XRP', 'LINK', 'AVAX', 'SUI', 'DOGE'].map(t => `<button type="button" data-t="${t}">${t}</button>`).join('')}</div>`;
+    const msg = el('div', {className: 'msg', id: 'token-msg'});
+    const out = el('div', {style: 'display:grid;gap:10px;min-width:0'});
+    p.append(form, msg, out); S.append(p);
+    const input = form.querySelector('input');
+    async function show(q) {
+      q = (q || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); if (!q) return;
+      input.value = q; msg.className = 'msg'; msg.textContent = `Henter ${q} …`;
+      try {
+        const {src, rows} = await fetchToken(q);
+        const dates = rows.map(r => r[0]), close = rows.map(r => r[1]);
+        if (tokenChart) { dropChart(tokenChart); tokenChart = null; }
+        building = 'krypto';
+        tokenChart = maPanel(out, {title: q, sub: 'USD · ' + src + ' · ' + rows.length + ' dage', dates, close, ma: sma(close, 200), color: css('--tok'),
+          note: rows.length < 200 ? 'Under 200 dages historik – MA200 kan ikke beregnes endnu.' : ''});
+        msg.textContent = ''; store.set('token', q);
+      } catch (e) { msg.className = 'msg err'; msg.textContent = `Fandt ikke ${q} på Binance eller Coinbase. Tjek symbolet (fx SOL, LINK, PEPE).`; }
+    }
+    form.addEventListener('submit', (e) => { e.preventDefault(); show(input.value); });
+    form.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () => show(b.dataset.t)));
+    show(store.get('token') || 'SOL');
   }
 
   // ---------- VIX ----------
   function vixSection() {
     const S = document.getElementById('vix'); S.innerHTML = '';
     const a = data.vix;
-    if (!a) { S.innerHTML = '<h2>VIX</h2><div class="empty">Data kunne ikke hentes ved seneste kørsel.</div>'; return; }
+    if (!a) return missing(S, 'VIX');
     const s = a.stats;
     S.append(el('div', {className: 's-head'}, `<h2>VIX · volatilitetsindeks</h2><span class="sub">${a.source || 'Yahoo Finance'} · seneste ${a.dates[a.dates.length - 1]}</span>`));
     const p = el('div', {className: 'panel'});
@@ -281,43 +473,48 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     addLine(ch, css('--trend'), 1, 0).setData(line(a.dates, a.mid));
     addLine(ch, css('--band2'), 1, 2).setData(line(a.dates, a.lower));
     addLine(ch, css('--vix'), 2, 0, 'VIX').setData(line(a.dates, a.close));
-    head.append(segButtons([['6M', .5], ['1Å', 1], ['3Å', 3], ['Alt', 0]], 1, (y) => {
-      if (y === .5) { const e = a.dates[a.dates.length - 1]; const d = new Date(e); d.setMonth(d.getMonth() - 6); ch.timeScale().setVisibleRange({from: d.toISOString().slice(0, 10), to: e}); }
-      else setRange(ch, a.dates, y);
-    }));
-    requestAnimationFrame(() => setRange(ch, a.dates, 1));
+    head.append(segButtons([['6M', .5], ['1Å', 1], ['3Å', 3], ['Alt', 0]], 1, (y) => setRange(ch, a.dates, y)));
+    later(() => setRange(ch, a.dates, 1));
   }
 
-  // ---------- Fear & Greed ----------
-  function fngZone(v) {
+  // ---------- Fear & Greed (CNN og CoinMarketCap) ----------
+  function cnnZone(v) {
     if (v < 25) return {label: 'Ekstrem frygt', cls: 'bad', color: css('--bad')};
     if (v < 45) return {label: 'Frygt', cls: 'warn', color: css('--warn')};
     if (v <= 55) return {label: 'Neutral', cls: '', color: css('--muted')};
     if (v <= 75) return {label: 'Grådighed', cls: 'good', color: css('--good')};
     return {label: 'Ekstrem grådighed', cls: 'good', color: css('--good')};
   }
-  function gauge(v) {
+  function cmcZone(v) {
+    if (v < 20) return {label: 'Ekstrem frygt', cls: 'bad', color: css('--bad')};
+    if (v < 40) return {label: 'Frygt', cls: 'warn', color: css('--warn')};
+    if (v < 60) return {label: 'Neutral', cls: '', color: css('--muted')};
+    if (v < 80) return {label: 'Grådighed', cls: 'good', color: css('--good')};
+    return {label: 'Ekstrem grådighed', cls: 'good', color: css('--good')};
+  }
+  function gauge(v, cuts) {
     const cx = 160, cy = 160, r = 120, w = 26;
     const pt = (val, rad) => { const a = Math.PI * (1 - val / 100); return [cx + rad * Math.cos(a), cy - rad * Math.sin(a)]; };
     const arc = (a0, a1, col) => { const [x0, y0] = pt(a0, r), [x1, y1] = pt(a1, r); return `<path d="M${x0} ${y0} A${r} ${r} 0 0 1 ${x1} ${y1}" stroke="${col}" stroke-width="${w}" fill="none"/>`; };
-    const segs = [[0, 25, css('--bad')], [25, 45, css('--warn')], [45, 55, css('--line')], [55, 75, css('--band1')], [75, 100, css('--good')]];
+    const cols = [css('--bad'), css('--warn'), css('--line'), css('--band1'), css('--good')];
+    const b = [0, ...cuts, 100];
+    const segs = cols.map((c, i) => [b[i], b[i + 1], c]);
     const [nx, ny] = pt(v, r - 6);
-    const ticks = [0, 25, 50, 75, 100].map(t => { const [x, y] = pt(t, r + 24); return `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" fill="${css('--muted')}" font-family="IBM Plex Mono,monospace">${t}</text>`; }).join('');
+    const ticks = b.map(t => { const [x, y] = pt(t, r + 24); return `<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" fill="${css('--muted')}" font-family="IBM Plex Mono,monospace">${t}</text>`; }).join('');
     return `<svg class="gauge" viewBox="0 0 320 196" role="img" aria-label="Fear and Greed ${fmt(v, 0)}">
       ${segs.map(s => arc(s[0] + .6, s[1] - .6, s[2])).join('')}${ticks}
       <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${css('--ink')}" stroke-width="3" stroke-linecap="round"/>
       <circle cx="${cx}" cy="${cy}" r="7" fill="${css('--ink')}"/>
       <text x="${cx}" y="${cy + 34}" text-anchor="middle" font-size="30" font-weight="600" fill="${css('--ink')}" font-family="IBM Plex Mono,monospace">${fmt(v, 0)}</text></svg>`;
   }
-  function fngSection() {
-    const S = document.getElementById('fng'); S.innerHTML = '';
-    const f = data.fng;
-    S.append(el('div', {className: 's-head'}, `<h2>CNN Fear &amp; Greed</h2><span class="sub">${f && f.asOf ? 'CNN-tidsstempel ' + new Date(f.asOf).toLocaleString('da-DK', {dateStyle: 'short', timeStyle: 'short'}) : ''}</span>`));
-    if (!f) { S.append(el('div', {className: 'empty'}, 'Indekset kunne ikke hentes fra CNN ved seneste kørsel.')); return; }
-    const z = fngZone(f.score);
+  function fngSection(id, f, title, zoneFn, cuts, stamp) {
+    const S = document.getElementById(id); S.innerHTML = '';
+    if (!f) return missing(S, title, 'Indekset kunne ikke hentes ved seneste kørsel.');
+    S.append(el('div', {className: 's-head'}, `<h2>${title}</h2><span class="sub">${stamp}</span>`));
+    const z = zoneFn(f.score);
     const p = el('div', {className: 'panel'});
     const top = el('div', {className: 'fng'});
-    top.innerHTML = gauge(f.score);
+    top.innerHTML = gauge(f.score, cuts);
     const right = el('div', {style: 'display:grid;gap:12px;min-width:0'});
     right.innerHTML = `<div><span class="chip ${z.cls}" style="font-size:13px;padding:7px 11px">${z.label}</span></div>
       <div class="kv">
@@ -330,27 +527,132 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     right.append(hc);
     top.append(right); p.append(top); S.append(p);
     if (f.history && f.history.length) {
-      const ch = mkChart(hc, {rightPriceScale: {borderColor: css('--line'), scaleMargins: {top: .08, bottom: .08}}});
-      const s = ch.addAreaSeries({lineColor: css('--ink'), lineWidth: 1.5, topColor: 'rgba(0,0,0,0)', bottomColor: 'rgba(0,0,0,0)', priceLineVisible: false, title: 'F&G'});
+      const ch = mkChart(hc, {rightPriceScale: {borderColor: css('--line'), scaleMargins: {top: .08, bottom: .08}}, localization: {locale: 'da-DK', priceFormatter: (v) => fmt(v, 0)}});
+      const s = ch.addLineSeries({color: css('--ink'), lineWidth: 1.5, priceLineVisible: false, title: 'F&G'});
       s.setData(f.history.map(([t, v]) => ({time: t, value: v})));
-      s.createPriceLine({price: 25, color: css('--bad'), lineWidth: 1, lineStyle: 2, axisLabelVisible: false});
-      s.createPriceLine({price: 75, color: css('--good'), lineWidth: 1, lineStyle: 2, axisLabelVisible: false});
-      ch.timeScale().fitContent();
+      s.createPriceLine({price: cuts[0], color: css('--bad'), lineWidth: 1, lineStyle: 2, axisLabelVisible: false});
+      s.createPriceLine({price: cuts[3], color: css('--good'), lineWidth: 1, lineStyle: 2, axisLabelVisible: false});
+      later(() => ch.timeScale().fitContent());
     }
   }
 
+  // ---------- makro ----------
+  const mdate = (m) => m + '-01';
+  const monthName = (m) => new Date(m + '-15').toLocaleDateString('da-DK', {month: 'long', year: 'numeric'});
+  function ismSection() {
+    const S = document.getElementById('ism'); S.innerHTML = '';
+    const a = (data.macro || {}).ism;
+    if (!a || !a.months.length) return missing(S, 'ISM Manufacturing PMI');
+    const n = a.values.length, last = a.values[n - 1], prev = a.values[n - 2];
+    const exp = last >= 50;
+    S.append(el('div', {className: 's-head'}, `<h2>ISM Manufacturing PMI</h2><span class="sub">USA · månedlig · seneste ${monthName(a.months[n - 1])}</span>`));
+    const p = el('div', {className: 'panel'});
+    const head = el('div', {className: 'p-head'}, `<h3>Industriens indkøbschefindeks <span class="sub">over 50 = vækst</span></h3>`);
+    p.append(head);
+    const c = el('div', {className: 'chart'}); p.append(c);
+    const avg12 = a.values.slice(-12).reduce((x, y) => x + y, 0) / Math.min(12, n);
+    let streak = 1; for (let i = n - 2; i >= 0 && (a.values[i] >= 50) === exp; i--) streak++;
+    p.append(el('div', {className: 'kv'}, `
+      <div><span class="label">Seneste</span><b>${fmt(last, 1)}</b></div>
+      <div><span class="label">Forrige</span><b>${fmt(prev, 1)}</b></div>
+      <div><span class="label">Ændring</span><b class="${last >= prev ? 'up' : 'down'}">${last >= prev ? '+' : ''}${fmt(last - prev, 1)}</b></div>
+      <div><span class="label">Snit 12 mdr.</span><b>${fmt(avg12, 1)}</b></div>
+      <div><span class="label">Status</span><b class="${exp ? 'up' : 'down'}">${exp ? 'Vækst' : 'Tilbagegang'} · ${streak} mdr.</b></div>`));
+    S.append(p);
+    const ch = mkChart(c, {timeScale: {borderColor: css('--line'), minBarSpacing: 0.5}, localization: {locale: 'da-DK', priceFormatter: (v) => fmt(v, 1)}});
+    const hs = ch.addHistogramSeries({priceLineVisible: false, lastValueVisible: true, base: 50, title: 'PMI'});
+    hs.setData(a.months.map((m, i) => ({time: mdate(m), value: a.values[i], color: a.values[i] >= 50 ? css('--good') : css('--bad')})));
+    hs.createPriceLine({price: 50, color: css('--ink'), lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: ''});
+    head.append(segButtons([['2Å', 2], ['5Å', 5], ['Alt', 0]], 5, (y) => setRange(ch, a.months.map(mdate), y)));
+    later(() => setRange(ch, a.months.map(mdate), 5));
+  }
+  function fedSection() {
+    const S = document.getElementById('fed'); S.innerHTML = '';
+    const a = (data.macro || {}).fed;
+    if (!a || !a.dates.length) return missing(S, 'Fed-renten');
+    const n = a.dates.length, hi = a.hi[n - 1], lo = a.lo[n - 1];
+    let ch_i = n - 1; while (ch_i > 0 && a.hi[ch_i - 1] === hi) ch_i--;
+    const lastMove = ch_i > 0 ? hi - a.hi[ch_i - 1] : 0;
+    const yr = a.dates.findIndex(d => d >= new Date(new Date(a.dates[n - 1]) - 3.156e10).toISOString().slice(0, 10));
+    S.append(el('div', {className: 's-head'}, `<h2>Fed-renten</h2><span class="sub">${a.source} · seneste ${a.dates[n - 1]}</span>`));
+    const p = el('div', {className: 'panel'});
+    const head = el('div', {className: 'p-head'}, `<h3>Målinterval og effektiv rente (EFFR)</h3>`);
+    p.append(head);
+    p.insertAdjacentHTML('beforeend', legend([[css('--ndx'), 'Øvre grænse'], [css('--trend'), 'Nedre grænse', 1], [css('--ink'), 'EFFR']]));
+    const c = el('div', {className: 'chart'}); p.append(c);
+    p.append(el('div', {className: 'kv'}, `
+      <div><span class="label">Målinterval</span><b>${fmt(lo, 2)}–${fmt(hi, 2)} %</b></div>
+      <div><span class="label">EFFR</span><b>${fmt(a.effr[n - 1], 2)} %</b></div>
+      <div><span class="label">Seneste ændring</span><b class="${lastMove > 0 ? 'down' : 'up'}">${lastMove ? (lastMove > 0 ? '+' : '−') + fmt(Math.abs(lastMove) * 100, 0) + ' bp' : '–'}</b></div>
+      <div><span class="label">Siden</span><b>${a.dates[ch_i]}</b></div>
+      <div><span class="label">Ændring 12 mdr.</span><b>${yr >= 0 ? ((hi - a.hi[yr]) > 0 ? '+' : (hi - a.hi[yr]) < 0 ? '−' : '') + fmt(Math.abs(hi - a.hi[yr]) * 100, 0) + ' bp' : '–'}</b></div>`));
+    S.append(p);
+    const ch = mkChart(c, {localization: {locale: 'da-DK', priceFormatter: (v) => fmt(v, 2) + ' %'}});
+    const step = (series, color, style) => ch.addLineSeries({color, lineWidth: 2, lineStyle: style, lineType: LC.LineType.WithSteps, priceLineVisible: false, lastValueVisible: false}).setData(line(a.dates, series));
+    step(a.lo, css('--trend'), 2);
+    step(a.hi, css('--ndx'), 0);
+    addLine(ch, css('--ink'), 1, 0, 'EFFR').setData(line(a.dates, a.effr));
+    head.append(segButtons([['2Å', 2], ['5Å', 5], ['Alt', 0]], 0, (y) => setRange(ch, a.dates, y)));
+    later(() => ch.timeScale().fitContent());
+  }
+  function cpiSection() {
+    const S = document.getElementById('cpi'); S.innerHTML = '';
+    const a = (data.macro || {}).cpi;
+    if (!a || !a.months.length) return missing(S, 'USA CPI-inflation');
+    const n = a.months.length;
+    S.append(el('div', {className: 's-head'}, `<h2>USA CPI-inflation</h2><span class="sub">${a.source} · seneste ${monthName(a.months[n - 1])}</span>`));
+    const p = el('div', {className: 'panel'});
+    const head = el('div', {className: 'p-head'}, `<h3>Årlig stigning i forbrugerpriserne <span class="sub">Fed-mål 2 %</span></h3>`);
+    p.append(head);
+    p.insertAdjacentHTML('beforeend', legend([[css('--band2'), 'CPI (samlet)'], [css('--ndx'), 'Kerne-CPI (ekskl. fødevarer og energi)'], [css('--good'), 'Mål 2 %', 1]]));
+    const c = el('div', {className: 'chart'}); p.append(c);
+    const h = a.headline[n - 1], hp = a.headline[n - 2], k = a.core[n - 1], kp = a.core[n - 2];
+    p.append(el('div', {className: 'kv'}, `
+      <div><span class="label">CPI år/år</span><b>${fmt(h, 1)} %</b></div>
+      <div><span class="label">Forrige md.</span><b>${fmt(hp, 1)} %</b></div>
+      <div><span class="label">Kerne år/år</span><b>${fmt(k, 1)} %</b></div>
+      <div><span class="label">Kerne forrige</span><b>${fmt(kp, 1)} %</b></div>
+      <div><span class="label">Retning</span><b class="${h <= hp ? 'up' : 'down'}">${h < hp ? 'Faldende' : h > hp ? 'Stigende' : 'Uændret'}</b></div>`));
+    S.append(p);
+    const ch = mkChart(c, {localization: {locale: 'da-DK', priceFormatter: (v) => fmt(v, 1) + ' %'}});
+    const ds = a.months.map(mdate);
+    const hs = addLine(ch, css('--band2'), 2, 0, 'CPI'); hs.setData(line(ds, a.headline));
+    hs.createPriceLine({price: 2, color: css('--good'), lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: ''});
+    addLine(ch, css('--ndx'), 2, 0, 'Kerne').setData(line(ds, a.core));
+    head.append(segButtons([['2Å', 2], ['5Å', 5], ['Alt', 0]], 0, (y) => setRange(ch, ds, y)));
+    later(() => ch.timeScale().fitContent());
+  }
+
   // ---------- render ----------
+  function renderPane(p) {
+    charts[p].forEach(c => c.remove()); charts[p] = [];
+    if (p === 'aktier') stockChart = null;
+    if (p === 'krypto') tokenChart = null;
+    building = p;
+    if (p === 'makro') { ismSection(); fedSection(); cpiSection(); }
+    if (p === 'aktier') {
+      priceSection('ndx', css('--ndx'), 'Nasdaq Composite', '^IXIC', 0);
+      lookupSection(); vixSection();
+      const f = data.fng;
+      fngSection('fng', f, 'CNN Fear &amp; Greed', cnnZone, [25, 45, 55, 75], f && f.asOf ? 'CNN · ' + new Date(f.asOf).toLocaleString('da-DK', {dateStyle: 'short', timeStyle: 'short'}) : '');
+    }
+    if (p === 'krypto') {
+      priceSection('btc', css('--btc'), 'Bitcoin', 'BTC-USD', 0);
+      priceSection('eth', css('--eth'), 'Ethereum', 'ETH-USD', 0);
+      tokenSection();
+      const f = data.cmcFng;
+      fngSection('cmc', f, 'CoinMarketCap Fear &amp; Greed', cmcZone, [20, 40, 60, 80], f ? 'CoinMarketCap · ' + f.asOf : '');
+    }
+    dirty[p] = false;
+  }
   function render(d) {
-    charts.forEach(c => c.remove()); charts = [];
     data = d;
+    PANES.forEach(p => dirty[p] = true);
     tiles(d);
-    priceSection('btc', css('--btc'), 'Bitcoin', 'BTC-USD', 0);
-    priceSection('ndx', css('--ndx'), 'Nasdaq Composite', '^IXIC', 0);
-    vixSection();
-    fngSection();
+    showPane(curPane, false);
     const errs = Object.keys(d.errors || {});
     const B = document.getElementById('banner');
-    const names = {btc: 'Bitcoin', ndx: 'Nasdaq', vix: 'VIX', fng: 'Fear & Greed'};
+    const names = {btc: 'Bitcoin', eth: 'Ethereum', ndx: 'Nasdaq', vix: 'VIX', fng: 'CNN Fear & Greed', cmcFng: 'CoinMarketCap Fear & Greed', ism: 'ISM PMI', fed: 'Fed-renten', cpi: 'CPI', stocks: 'aktiesøgningen'};
     if (d.demo) { B.hidden = false; B.textContent = 'Demo-data: tallene er syntetiske og kun til test af layoutet.'; }
     else if (errs.length) { B.hidden = false; B.textContent = 'Seneste opdatering kunne ikke hente ' + errs.map(e => names[e] || e).join(', ') + '. Der vises de senest kendte tal.'; }
     else B.hidden = true;
@@ -369,11 +671,14 @@ h3{font:700 14px/1.3 var(--body);margin:0}
     try {
       const r = await fetch('data.json?t=' + Date.now(), {cache: 'no-store'});
       const d = await r.json();
-      if (!data || d.generated !== data.generated) render(d);
+      if (!data || d.generated !== data.generated) { stockIndex = null; render(d); }
     } catch (e) {
       if (!data) document.getElementById('status').textContent = 'Kunne ikke hente data – prøv at genindlæse siden.';
     }
   }
+  const h0 = location.hash.slice(1);
+  curPane = PANES.includes(h0) ? h0 : (PANES.includes(store.get('pane')) ? store.get('pane') : 'makro');
+  showPane(curPane, false);
   load();
   setInterval(load, 10 * 60e3);
   setInterval(updateStatus, 60e3);

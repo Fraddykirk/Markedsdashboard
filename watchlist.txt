@@ -1,0 +1,12 @@
+# Ekstra aktier til tickersøgningen (S&P 500, Nasdaq-100 og C25 er med automatisk).
+# Én pr. linje: TICKER Navn   – brug Yahoo Finance-koder, fx NOVO-B.CO, ASML.AS, SAP.DE
+ASML.AS ASML Holding (Amsterdam)
+SAP.DE SAP
+TSM Taiwan Semiconductor (ADR)
+NVO Novo Nordisk (ADR)
+ARM Arm Holdings
+PLTR Palantir
+COIN Coinbase
+MSTR Strategy (MicroStrategy)
+SPY SPDR S&P 500 ETF
+QQQ Invesco QQQ (Nasdaq-100)
