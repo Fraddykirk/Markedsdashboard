@@ -457,6 +457,40 @@ def ser(arr, digits):
     return [None if not np.isfinite(v) else round(float(v), digits) for v in arr]
 
 
+def btc_long_history():
+    """Lang BTC-historik (2010+) til 200-ugers gennemsnittet. CoinMetrics, ellers Yahoo (2014+)."""
+    try:
+        rows, url = [], "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
+        params = {"assets": "btc", "metrics": "PriceUSD", "frequency": "1d", "page_size": 10000, "start_time": "2010-07-18"}
+        while url:
+            j = requests.get(url, params=params, timeout=60).json()
+            rows += j["data"]; url = j.get("next_page_url"); params = None
+        hist = {x["time"][:10]: float(x["PriceUSD"]) for x in rows if x.get("PriceUSD")}
+        if len(hist) > 3000:
+            return hist
+    except Exception as e:
+        print("CoinMetrics fejlede:", e)
+    import yfinance as yf
+    df = yf.Ticker("BTC-USD").history(period="max", interval="1d")
+    return {i.strftime("%Y-%m-%d"): float(v) for i, v in zip(df.index, df["Close"])}
+
+
+def add_wma200(asset, long_hist):
+    """200-ugers glidende gennemsnit (ugentlige lukkekurser, søndag), lagt ud på de daglige datoer."""
+    import pandas as pd
+    hist = dict(long_hist)
+    hist.update(zip(asset["dates"], [v for v in asset["close"] if v is not None]))  # seneste kurser fra hovedkilden
+    s_ = pd.Series(hist); s_.index = pd.to_datetime(s_.index); s_ = s_.sort_index()
+    wk = s_.resample("W-SUN").last().rolling(200).mean()
+    daily = wk.reindex(pd.to_datetime(asset["dates"]), method="bfill")  # hver dag får gennemsnittet for sin uge
+    asset["wma200"] = ser(daily.values, 0)
+    last = daily.dropna()
+    if len(last):
+        w = float(last.iloc[-1]); px = asset["stats"]["last"]
+        asset["stats"]["wma200"] = round(w)
+        asset["stats"]["vsWma"] = round((px / w - 1) * 100, 1)
+
+
 def build_price_asset(dates, close, digits):
     trend, sigma, z, cagr = log_channel(dates, close)
     ma = sma(close, 200)
@@ -565,6 +599,11 @@ def main():
                 dates, close, source = fetch_prices(key, cfg["symbol"])
             out[key] = build_vix(dates, close) if key == "vix" else build_price_asset(dates, close, 0 if key in ("btc", "ndx") else 1)
             out[key].update(name=cfg["name"], symbol=cfg["symbol"], updated=out["generated"], source=source)
+            if key == "btc":
+                try:
+                    add_wma200(out[key], {d: c for d, c in zip(dates, close)} if demo else btc_long_history())
+                except Exception as e:
+                    print("FEJL 200W MA:", e)
         except Exception as e:
             print(f"FEJL {key}: {e}")
             out["errors"][key] = str(e)[:200]
