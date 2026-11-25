@@ -70,7 +70,7 @@ jobs:
     needs: build-deploy
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 65
     steps:
       # GitHub slår planlagte kørsler fra efter 60 dage uden aktivitet – et lille dagligt commit forhindrer det.
       - uses: actions/checkout@v4
@@ -106,6 +106,12 @@ jobs:
           if [ "$others" -gt 0 ]; then
             echo "En anden kørsel er allerede i gang – kæden fortsætter derfra."
           else
-            gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/update.yml/dispatches" -f ref=main
-            echo "Næste kørsel startet."
+            # GitHub svarer af og til med midlertidige fejl (fx HTTP 500) – prøv igen i op til ca. 20 min
+            for wait in 15 30 60 60 120 120 180 300 300 0; do
+              if gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/update.yml/dispatches" -f ref=main; then
+                echo "Næste kørsel startet."; exit 0
+              fi
+              echo "Kunne ikke starte næste kørsel – prøver igen om ${wait}s"; sleep $wait
+            done
+            echo "::error::Kæden kunne ikke fortsætte efter 10 forsøg"; exit 1
           fi
